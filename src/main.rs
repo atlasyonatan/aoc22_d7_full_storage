@@ -12,7 +12,7 @@ fn main() {
         .map(|l| l.unwrap())
         .traverse_sizes()
         .collect();
-    
+
     //part 1
     let sum = sizes.iter().filter(|size| **size <= 100000).sum::<u32>();
     println!("part 1: {}", sum);
@@ -24,7 +24,7 @@ fn main() {
     sizes.sort();
     let used = sizes.last().unwrap();
     let unused = total_storage - used;
-    
+
     let min_delete_size = need_free - unused;
     let size_for_delete = sizes.iter().find(|s| **s >= min_delete_size).unwrap();
     println!("part 2: {}", size_for_delete)
@@ -35,10 +35,22 @@ struct SizeTraverser<I: Iterator, Size> {
     stack: Vec<Size>,
 }
 
+impl<I: Iterator, Size: Copy + AddAssign> SizeTraverser<I, Size> {
+    fn pop(&mut self) -> Option<Size> {
+        let popped = self.stack.pop();
+        if let Some(size) = popped {
+            if let Some(parent) = self.stack.last_mut() {
+                *parent += size;
+            }
+        }
+        return popped;
+    }
+}
+
 impl<I, Size> Iterator for SizeTraverser<I, Size>
 where
     I: Iterator<Item = String>,
-    Size : Copy + Default + AddAssign + FromStr
+    Size: Copy + Default + AddAssign + FromStr,
 {
     type Item = Size;
 
@@ -48,16 +60,7 @@ where
             match words.next() {
                 Some("$") => match words.next() {
                     Some("cd") => match words.next() {
-                        Some("..") => {
-                            let popped = self.stack.pop();
-                            if let Some(size) = popped {
-                                if let Some(parent) = self.stack.last_mut() {
-                                    *parent += size;
-                                }
-                                return Some(size);
-                            }
-                            return popped;
-                        }
+                        Some("..") => return self.pop(),
                         Some(_) => self.stack.push(Size::default()),
                         None => panic!("Invalid command. Missing 1 paremeter"),
                     },
@@ -73,10 +76,10 @@ where
                         }
                     }
                 }
-                None => {}
+                None => (),
             }
         }
-        return None;
+        return self.pop();
     }
 }
 
